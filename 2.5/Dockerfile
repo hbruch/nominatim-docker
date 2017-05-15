@@ -30,17 +30,17 @@ WORKDIR /app
 RUN echo "host all  all    0.0.0.0/0  trust" >> /etc/postgresql/9.5/main/pg_hba.conf && \
     echo "listen_addresses='*'" >> /etc/postgresql/9.5/main/postgresql.conf
 
+# Defines the concurrency of the installation and import ToDo: move to Readme
+ENV THREADS 6
+
 # Nominatim install
 # Nominatim master from 2017-05-15
 # freezing version to have reproducible results
 ENV NOMINATIM_VERSION 6830b12
-RUN git clone --recursive git://github.com/openstreetmap/Nominatim.git ./src
-RUN cd ./src && git checkout $NOMINATIM_VERSION && git submodule update --recursive --init
-
-ENV THREADS 6
-
-RUN mkdir src/build \
-  && cd src/build \
+RUN git clone --recursive git://github.com/openstreetmap/Nominatim.git ./src \
+  && cd ./src && git checkout $NOMINATIM_VERSION && git submodule update --recursive --init \
+  && mkdir build \
+  && cd build \
   && cmake .. \
   && make -j $THREADS \
   && make install

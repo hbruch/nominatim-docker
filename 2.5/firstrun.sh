@@ -1,5 +1,5 @@
 # Load initial data
-export PBF_FILE=http://download.geofabrik.de/europe/monaco-latest.osm.pbf
+echo Running on $THREADS cores
 
 if [ "$PBF_FILE" = "" ]; then
   echo "You need to specify the environmental PBF_FILE"
