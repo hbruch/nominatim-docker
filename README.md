@@ -1,4 +1,5 @@
 # Nominatim Docker
+[![](https://images.microbadger.com/badges/image/thomasnordquist/simple-nominatim.svg)](https://microbadger.com/images/thomasnordquist/simple-nominatim "Get your own image badge on microbadger.com")
 
 Docker container based on a current [Nominatim](https://github.com/openstreetmap/Nominatim) version.
 Version 2.5.1 is already pretty old, but there is not yet a newer release. The version provided here is **411 commits** ahead of 2.5.1.
