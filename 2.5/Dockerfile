@@ -1,8 +1,12 @@
 FROM ubuntu:16.04
 
+# Defines the concurrency of the installation
+ENV THREADS 6
+
 ENV DEBIAN_FRONTEND noninteractive
 ENV LANG C.UTF-8
 
+# Install locales before installing postgresql
 RUN apt-get update -qq \
     && apt-get -y install locales \
     && rm -rf /var/lib/apt/lists/* \
@@ -18,34 +22,31 @@ RUN apt-get update -qq \
       libbz2-dev libpq-dev libgeos-dev libgeos++-dev libproj-dev \
       postgresql-server-dev-9.5 postgresql-9.5-postgis-2.2 postgresql-contrib-9.5 \
       apache2 php php-pgsql libapache2-mod-php php-pear php-db \
-      git sudo \
+      git sudo ca-certificates curl nano \
     && rm -rf /var/lib/apt/lists/* \
     && rm -rf /tmp/* /var/tmp/*
 
-
-RUN apt-get update && apt-get -y install ca-certificates curl
 WORKDIR /app
 
 # Configure postgres
 RUN echo "host all  all    0.0.0.0/0  trust" >> /etc/postgresql/9.5/main/pg_hba.conf && \
     echo "listen_addresses='*'" >> /etc/postgresql/9.5/main/postgresql.conf
 
-# Defines the concurrency of the installation and import ToDo: move to Readme
-ENV THREADS 6
-
 # Nominatim install
 # Nominatim master from 2017-05-15
 # freezing version to have reproducible results
 ENV NOMINATIM_VERSION 6830b12
 RUN git clone --recursive git://github.com/openstreetmap/Nominatim.git ./src \
-  && cd ./src && git checkout $NOMINATIM_VERSION && git submodule update --recursive --init \
+  && cd ./src \
+  && git checkout $NOMINATIM_VERSION \
+  && git submodule update --recursive --init \
   && mkdir build \
   && cd build \
   && cmake .. \
   && make -j $THREADS \
   && make install
 
-# Nominatim create site
+# Link files to /var/www
 COPY local.php ./src/build/settings/local.php
 RUN rm -rf /var/www/html \
   && ln -s /app/src/build/website /var/www/html \
@@ -65,5 +66,6 @@ RUN rm /var/log/apache2/*.log \
 EXPOSE 5432
 EXPOSE 8080
 
+VOLUME /var/lib/postgresql
 
 CMD /app/start.sh
