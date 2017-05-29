@@ -21,6 +21,7 @@ fi;
 sed -i "s/fsync = on/fsync = off/g" /etc/postgresql/9.5/main/postgresql.conf
 sed -i "s/full_page_writes = on/full_page_writes = off/g" /etc/postgresql/9.5/main/postgresql.conf
 
+echo Downloading map data from "$PBF_URL"
 curl -L "$PBF_URL" --create-dirs -o /app/src/data.osm.pbf && \
     curl -L -o /app/src/data/country_osm_grid.sql.gz http://www.nominatim.org/data/country_grid.sql.gz && \
     service postgresql start && \
