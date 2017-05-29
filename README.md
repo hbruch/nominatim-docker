@@ -1,73 +1,65 @@
 # Nominatim Docker
 
-100% working container for [Nominatim](https://github.com/twain47/Nominatim).
+Docker container based on a current [Nominatim](https://github.com/openstreetmap/Nominatim) version.
+Version 2.5.1 is already pretty old, but there is not yet a newer release. The version provided here is **411 commits** ahead of 2.5.1.
 
-[![](https://images.microbadger.com/badges/image/mediagis/nominatim.svg)](https://microbadger.com/images/mediagis/nominatim "Get your own image badge on microbadger.com")
+Run [http://wiki.openstreetmap.org/wiki/Nominatim](http://wiki.openstreetmap.org/wiki/Nominatim) in a docker container.
 
-# Supported tags and respective `Dockerfile` links #
+To prevent instability, the version of nominatim is frozen to a recent commit. You can change the version / commit hash in the Dockerfile.
+Feel free to create a pull request
 
-- [`2.5.0`, `2.5`, `latest`  (*2.5/Dockerfile*)](https://github.com/mediagis/nominatim-docker/tree/master/2.5)
+Running with **Ubuntu 16.04 LTS**, **PostgreSQL 9.5**, **PHP 7**
 
-
-Run [http://wiki.openstreetmap.org/wiki/Nominatim](http://wiki.openstreetmap.org/wiki/Nominatim) in a docker container. Clones the current master and builds it. This is always the latest version, be cautious as it may be unstable.
-
-Uses Ubuntu 14.04 and PostgreSQL 9.3
-
-# Country
-To check that everything is set up correctly, download and load to Postgres PBF file with minimal size - Europe/Monacco (latest) from geofabrik.de.
-
-If a different country should be used you can set `PBF_DATA` on build.
-
-1. Clone repository
-
-  ```
-  # git clone git@github.com:mediagis/nominatim-docker.git
-  # cd nominatim-docker/2.5
-  ```
-
-2. Modify Dockerfile, set your url for PBF
-
-  ```
-  ENV PBF_DATA http://download.geofabrik.de/europe/monaco-latest.osm.pbf
-  ```
-3. Configure incrimental update. By default CONST_Replication_Url configured for Monaco.
-If you want a different update source, you will need to declare `CONST_Replication_Url` in local.php. Documentation [here] (https://github.com/twain47/Nominatim/blob/master/docs/Import_and_update.md#updates). For example, to use the daily country extracts diffs for Gemany from geofabrik add the following:
-  ```
-  @define('CONST_Replication_Url', 'http://download.geofabrik.de/europe/germany-updates');
-  ```
-
-4. Build 
-
-  ```
-  docker build -t nominatim .
-  ```
-5. Run
-
-  ```
-  docker run --restart=always -d -p 8080:8080 --name nominatim-monacco nominatim
-  ```
-  If this succeeds, open [http://localhost:8080/](http:/localhost:8080) in a web browser
-
-# Running
-
-You can run Docker image from docher hub.
-
+# Setup
+You can build your own image as simple as
 ```
-docker run --restart=always -d -p 8080:8080 --name nominatim mediagis/nominatim:latest
+docker build . --tag thomasnordquist/simple-nominatim:latest
 ```
-Service will run on [http://localhost:8080/](http:/localhost:8080)
+This will only install the environment to run and import the data.
 
-# Update
+# Run / Import
+In contrast to other nominatim docker implementations, I decided to move the import out of the build phase.
 
-Full documentation for Nominatim update available [here](https://github.com/twain47/Nominatim/blob/master/docs/Import_and_update.md#updates). For a list of other methods see the output of:
-  ```
-  docker exec -it nominatim sudo -u nominatim ./src/utils/update.php --help
-  ```
+### Example for monaco
+Monaco is the smallest dataset and therefore the best example to begin with
+```
+docker run \
+ -e PBF_URL=http://download.geofabrik.de/europe/monaco-latest.osm.pbf \
+ -e REPLICATION_URL=http://download.geofabrik.de/europe/monaco-updates \
+ -p 8080:8080 \
+ -it thomasnordquist/simple-nominatim
+```
 
-The following command will keep your database constantly up to date:
-  ```
-  docker exec -it nominatim sudo -u nominatim ./src/utils/update.php --import-osmosis-all --no-npi
-  ```
-If you have imported multiple country extracts and want to keep them
-up-to-date, have a look at the script in
-[issue #60](https://github.com/twain47/Nominatim/issues/60).
+
+### Example for germany
+Germany is a much bigger dataset and requires far more time, about 12 hours on an AMD 6-core machine with SSD.
+After import the image is **>70GB** in size.
+```
+docker run \
+ -e PBF_URL=http://download.geofabrik.de/europe/germany-latest.osm.pbf \
+ -e REPLICATION_URL=http://download.geofabrik.de/europe/germany-updates \
+ -e THREADS=8 \
+ --restart=always \
+ -p 8082:8080 \
+ --name nominatim-germany \
+ -it thomasnordquist/simple-nominatim
+```
+
+The service will run on [http://localhost:8080/](http:/localhost:8080)
+
+# Country data
+If you want to import data from other countrys or even the whole planet, check out these links:
+
+- http://download.geofabrik.de/
+- http://wiki.openstreetmap.org/wiki/Planet.osm
+
+# Tweaking performance
+Take a look at the `postgresql.conf` and
+https://github.com/openstreetmap/Nominatim/blob/master/docs/Installation.md#postgresql-tuning
+
+
+During import the following PostgreSQL parameters wll be changed in `firstrun.sh`
+```
+fsync = off
+full_page_writes = off
+```
