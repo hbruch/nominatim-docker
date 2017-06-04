@@ -18,8 +18,8 @@ fi;
 
 
 # Update postgres config to improve import performance
-sed -i "s/fsync = on/fsync = off/g" /etc/postgresql/9.5/main/postgresql.conf
-sed -i "s/full_page_writes = on/full_page_writes = off/g" /etc/postgresql/9.5/main/postgresql.conf
+sed -i "s/fsync = on/fsync = off/g" /etc/postgresql/9.3/main/postgresql.conf
+sed -i "s/full_page_writes = on/full_page_writes = off/g" /etc/postgresql/9.3/main/postgresql.conf
 
 echo Downloading map data from "$PBF_URL"
 curl -L "$PBF_URL" --create-dirs -o /app/src/data.osm.pbf && \
@@ -35,5 +35,5 @@ curl -L "$PBF_URL" --create-dirs -o /app/src/data.osm.pbf && \
     service postgresql stop && \
     touch /app/installed
 
-sed -i "s/fsync = off/fsync = on/g" /etc/postgresql/9.5/main/postgresql.conf
-sed -i "s/full_page_writes = off/full_page_writes = on/g" /etc/postgresql/9.5/main/postgresql.conf
+sed -i "s/fsync = off/fsync = on/g" /etc/postgresql/9.3/main/postgresql.conf
+sed -i "s/full_page_writes = off/full_page_writes = on/g" /etc/postgresql/9.3/main/postgresql.conf

@@ -1,4 +1,4 @@
-FROM ubuntu:16.04
+FROM ubuntu:14.04
 
 # Defines the concurrency of the installation
 ENV THREADS 6
@@ -20,8 +20,8 @@ RUN apt-get update -qq \
       build-essential cmake g++ libboost-dev libboost-system-dev \
       libboost-filesystem-dev libexpat1-dev zlib1g-dev libxml2-dev\
       libbz2-dev libpq-dev libgeos-dev libgeos++-dev libproj-dev \
-      postgresql-server-dev-9.5 postgresql-9.5-postgis-2.2 postgresql-contrib-9.5 \
-      apache2 php php-pgsql libapache2-mod-php php-pear php-db \
+      postgresql-server-dev-9.3 postgresql-9.3-postgis-2.1 postgresql-contrib-9.3 \
+      apache2 php5 php5-pgsql libapache2-mod-php5 php-pear php-db \
       git sudo ca-certificates curl nano \
     && rm -rf /var/lib/apt/lists/* \
     && rm -rf /tmp/* /var/tmp/*
@@ -29,8 +29,8 @@ RUN apt-get update -qq \
 WORKDIR /app
 
 # Configure postgres
-RUN echo "host all  all    0.0.0.0/0  trust" >> /etc/postgresql/9.5/main/pg_hba.conf && \
-    echo "listen_addresses='*'" >> /etc/postgresql/9.5/main/postgresql.conf
+RUN echo "host all  all    0.0.0.0/0  trust" >> /etc/postgresql/9.3/main/pg_hba.conf && \
+    echo "listen_addresses='*'" >> /etc/postgresql/9.3/main/postgresql.conf
 
 # Nominatim install
 # Nominatim master from 2017-05-15
@@ -56,7 +56,7 @@ RUN rm -rf /var/www/html \
 COPY nominatim.conf /etc/apache2/sites-enabled/000-default.conf
 
 COPY firstrun.sh start.sh postgresql.conf /app/
-RUN cat /app/postgresql.conf >> /etc/postgresql/9.5/main/postgresql.conf
+RUN cat /app/postgresql.conf >> /etc/postgresql/9.3/main/postgresql.conf
 
 # Pipe errors to stdout, access them with `docker logs $CONTAINER_ID`
 RUN rm /var/log/apache2/*.log \
