@@ -1,4 +1,4 @@
-FROM ubuntu:14.04
+FROM ubuntu:16.04
 
 # Defines the concurrency of the installation
 ENV THREADS 6
@@ -17,46 +17,57 @@ RUN update-locale LANG=en_US.UTF-8
 
 RUN apt-get update -qq \
     && apt-get install -y -o APT::Install-Recommends="false" -o APT::Install-Suggests="false" -y \
-      build-essential cmake g++ libboost-dev libboost-system-dev \
-      libboost-filesystem-dev libexpat1-dev zlib1g-dev libxml2-dev\
-      libbz2-dev libpq-dev libgeos-dev libgeos++-dev libproj-dev \
-      postgresql-server-dev-9.3 postgresql-9.3-postgis-2.1 postgresql-contrib-9.3 \
-      apache2 php5 php5-pgsql libapache2-mod-php5 php-pear php-db \
-      git sudo ca-certificates curl nano \
+			build-essential cmake g++ libboost-dev libboost-system-dev \
+                        libboost-filesystem-dev libexpat1-dev zlib1g-dev libxml2-dev\
+                        libbz2-dev libpq-dev libgeos-dev libgeos++-dev libproj-dev \
+                        postgresql-server-dev-9.5 postgresql-9.5-postgis-2.2 postgresql-contrib-9.5 \
+                        apache2 php php-pgsql libapache2-mod-php php-pear php-db \
+			python python-pip python-setuptools libboost-python1.58 libboost-python-dev \
+                        php-intl git curl nano ca-certificates sudo \
     && rm -rf /var/lib/apt/lists/* \
     && rm -rf /tmp/* /var/tmp/*
+
+RUN pip install osmium
 
 WORKDIR /app
 
 # Configure postgres
-RUN echo "host all  all    0.0.0.0/0  trust" >> /etc/postgresql/9.3/main/pg_hba.conf && \
-    echo "listen_addresses='*'" >> /etc/postgresql/9.3/main/postgresql.conf
+RUN echo "host all  all    0.0.0.0/0  trust" >> /etc/postgresql/9.5/main/pg_hba.conf && \
+    echo "listen_addresses='*'" >> /etc/postgresql/9.5/main/postgresql.conf
+
+
+RUN useradd -d /srv/nominatim -s /bin/bash -m nominatim
+
+ENV USERNAME nominatim
+ENV USERHOME /srv/nominatim
+
+WORKDIR /srv/nominatim
 
 # Nominatim install
-# Nominatim master from 2017-05-15
-# freezing version to have reproducible results
-ENV NOMINATIM_VERSION 6830b12
-RUN git clone --recursive git://github.com/openstreetmap/Nominatim.git ./src \
-  && cd ./src \
+ENV NOMINATIM_VERSION v3.0.1
+RUN git clone --recursive git://github.com/openstreetmap/Nominatim.git ./Nominatim \
+  && cd ./Nominatim \
   && git checkout $NOMINATIM_VERSION \
   && git submodule update --recursive --init \
+  && curl http://www.nominatim.org/data/country_grid.sql.gz > data/country_osm_grid.sql.gz \
   && mkdir build \
   && cd build \
   && cmake .. \
   && make -j $THREADS \
-  && make install
+  && make install \
+  && chown -R nominatim:www-data $USERHOME \
+  && chmod a+x $USERHOME
 
-# Link files to /var/www
-COPY local.php ./src/build/settings/local.php
-RUN rm -rf /var/www/html \
-  && ln -s /app/src/build/website /var/www/html \
-  && ln -s /app/src/build/settings /var/www/
 
 # Apache configure
-COPY nominatim.conf /etc/apache2/sites-enabled/000-default.conf
+#COPY nominatim.conf /etc/apache2/sites-enabled/000-default.conf
+COPY apache-nominatim.conf /etc/apache2/conf-available/nominatim.conf
+RUN a2enconf nominatim
 
 COPY firstrun.sh start.sh postgresql.conf /app/
-RUN cat /app/postgresql.conf >> /etc/postgresql/9.3/main/postgresql.conf
+RUN cat /app/postgresql.conf >> /etc/postgresql/9.5/main/postgresql.conf
+
+COPY local.php /srv/nominatim/Nominatim/settings/local.php
 
 # Pipe errors to stdout, access them with `docker logs $CONTAINER_ID`
 RUN rm /var/log/apache2/*.log \
@@ -67,5 +78,7 @@ EXPOSE 5432
 EXPOSE 8080
 
 VOLUME /var/lib/postgresql
+
+#USER nominatim
 
 CMD /app/start.sh
